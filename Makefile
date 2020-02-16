@@ -52,6 +52,8 @@ define Package/$(PKG_NAME)/description
 npc is a fast reverse proxy to help you expose a local server behind a NAT or firewall to the internet
 endef
 
+
+UNPACK_CMD=tar -zxvf "$(DL_DIR)/$(PKG_SOURCE)" -C $(PKG_BUILD_DIR)
 define Build/Prepare
 	$(PKG_UNPACK)
 endef
