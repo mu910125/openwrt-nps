@@ -10,20 +10,24 @@ PKG_NAME:=nps
 PKG_VERSION:=0.26.2
 PKG_RELEASE:=1
 
+PKG_HASH:=skip
 ifeq ($(ARCH),mipsel)
 	NPC_ARCH:=mipsle
 endif
 ifeq ($(ARCH),mips)
 	NPC_ARCH:=mips
+	PKG_HASH:=4db5b987bf40ca66fd4ef5f93778fc734034289a61478d6efc44acc1fcb2cf67
 endif
 ifeq ($(ARCH),i386)
 	NPC_ARCH:=386
 endif
 ifeq ($(ARCH),x86_64)
 	NPC_ARCH:=amd64
+	PKG_HASH:=5dd43e3c3522e8dfa5c95cd9d8209a12a22cd30ee3606e07b596bb6a1fc65dca
 endif
 ifeq ($(ARCH),arm)
-	NPC_ARCH:=arm
+	NPC_ARCH:=arm_v7
+	PKG_HASH:=7c4f021f39678a8e4d7355bffe392963b34ac17eb515e4bf55fa43f8f5e4a729
 endif
 ifeq ($(ARCH),aarch64)
 	NPC_ARCH:=arm64
@@ -34,7 +38,6 @@ PKG_LICENSE:=Apache-2.0
 PKG_SOURCE_URL:=https://github.com/cnlh/nps/releases/download/v$(PKG_VERSION)
 PKG_SOURCE:=linux_$(NPC_ARCH)_server.tar.gz
 PKG_BUILD_DIR:=$(BUILD_DIR)/nps
-PKG_HASH:=skip
 
 include $(INCLUDE_DIR)/package.mk
 
