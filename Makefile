@@ -1,78 +1,82 @@
 #
-# Copyright (C) 2015-2016 OpenWrt.org
+# Copyright (C) 2019-2020 
+# Copyright (C) 2019-2020 
 #
-# This is free software, licensed under the GNU General Public License v3.
+# This is free software, licensed under the GNU General Public License v2.
+# See /LICENSE for more information.
 #
 
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=nps
-PKG_VERSION:=0.26.2
+PKG_NAME:=openwrt-nps
+PKG_VERSION:=1
 PKG_RELEASE:=1
 
-PKG_HASH:=skip
-ifeq ($(ARCH),mipsel)
-	NPC_ARCH:=mipsle
-endif
-ifeq ($(ARCH),mips)
-	NPC_ARCH:=mips
-	PKG_HASH:=4db5b987bf40ca66fd4ef5f93778fc734034289a61478d6efc44acc1fcb2cf67
-endif
-ifeq ($(ARCH),i386)
-	NPC_ARCH:=386
-endif
-ifeq ($(ARCH),x86_64)
-	NPC_ARCH:=amd64
-	PKG_HASH:=5dd43e3c3522e8dfa5c95cd9d8209a12a22cd30ee3606e07b596bb6a1fc65dca
-endif
-ifeq ($(ARCH),arm)
-	NPC_ARCH:=arm_v7
-	PKG_HASH:=7c4f021f39678a8e4d7355bffe392963b34ac17eb515e4bf55fa43f8f5e4a729
-endif
-ifeq ($(ARCH),aarch64)
-	NPC_ARCH:=arm64
-endif
+PKG_SOURCE_PROTO:=git
+PKG_SOURCE_URL:=https://github.com/ehang-io/nps
+PKG_SOURCE_VERSION:=c9b755360c3b3513e53bb265ae49703f06d6f34f
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_SOURCE_VERSION).tar.gz
+PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_SOURCE_VERSION)
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_SOURCE_VERSION)
 
-PKG_LICENSE:=Apache-2.0
+PKG_LICENSE:=MIT
+PKG_LICENSE_FILES:=LICENSE
+PKG_MAINTAINER:=mujw <mujw@gmail.com>
 
-PKG_SOURCE_URL:=https://github.com/cnlh/nps/releases/download/v$(PKG_VERSION)
-PKG_SOURCE:=linux_$(NPC_ARCH)_server.tar.gz
-PKG_BUILD_DIR:=$(BUILD_DIR)/nps
+PKG_BUILD_DEPENDS:=golang/host
+PKG_BUILD_PARALLEL:=1
+PKG_USE_MIPS16:=0
+
+GO_PKG:=github.com/ehang-io/nps
+GO_PKG_LDFLAGS:=-s -w
 
 include $(INCLUDE_DIR)/package.mk
+include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk
 
 define Package/$(PKG_NAME)
+	TITLE:=A platform for building proxies
 	SECTION:=net
 	CATEGORY:=Network
-	TITLE:=NPS Server
-	DEPENDS:=
-	URL:=https://github.com/cnlh/nps/releases
+	DEPENDS:=$(GO_ARCH_DEPENDS) +ca-certificates
 endef
 
-
+define Package/$(PKG_NAME)/config
+	source "$(SOURCE)/Config.in"
+endef
 
 define Package/$(PKG_NAME)/description
-npc is a fast reverse proxy to help you expose a local server behind a NAT or firewall to the internet
+	nps is a fast reverse proxy to help you expose a local server behind a NAT or firewall to the internet
 endef
 
-
-UNPACK_CMD=tar -zxvf "$(DL_DIR)/$(PKG_SOURCE)" -C $(PKG_BUILD_DIR)
 define Build/Prepare
-	$(PKG_UNPACK)
-endef
-
-define Build/Configure
+	$(call Build/Prepare/Default)
+	mkdir -p $(PKG_BUILD_DIR)/cmd/sdk
+	mv $(PKG_BUILD_DIR)/cmd/npc/sdk.go $(PKG_BUILD_DIR)/cmd/sdk/sdk.go
 endef
 
 define Build/Compile
+	$(if $(CONFIG_NPS), \
+		$(eval GO_PKG_BUILD_PKG:=github.com/ehang-io/nps/cmd/nps) \
+		$(call GoPackage/Build/Compile); \
+		$(STAGING_DIR_HOST)/bin/upx --lzma --best $(GO_PKG_BUILD_BIN_DIR)/nps)
+
+	 $(if $(CONFIG_NPC), \
+		 $(eval GO_PKG_BUILD_PKG:=github.com/ehang-io/nps/cmd/npc) \
+		 $(call GoPackage/Build/Compile); \
+		 $(STAGING_DIR_HOST)/bin/upx --lzma --best $(GO_PKG_BUILD_BIN_DIR)/npc)
 endef
 
 define Package/$(PKG_NAME)/install
-	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_DIR) $(1)/etc/nps/
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/nps $(1)/usr/bin/
-	$(CP) $(PKG_BUILD_DIR)/web $(1)/etc/nps/
-	$(CP) $(PKG_BUILD_DIR)/conf $(1)/etc/nps/
+	$(INSTALL_DIR) $(1)/usr/bin/
+ifneq ($(CONFIG_NPS), )
+	$(INSTALL_BIN) $(GO_PKG_BUILD_BIN_DIR)/nps $(1)/usr/bin/
+endif
+
+ifneq ($(CONFIG_NPC), )
+	$(INSTALL_BIN) $(GO_PKG_BUILD_BIN_DIR)/npc $(1)/usr/bin/
+endif
+
 endef
 
+$(eval $(call GoBinPackage,$(PKG_NAME)))
 $(eval $(call BuildPackage,$(PKG_NAME)))

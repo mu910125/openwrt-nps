@@ -1,0 +1,13 @@
+menu "NPS Configuration"
+	depends on PACKAGE_openwrt-nps
+
+config NPS
+	bool "NPS"
+	default n
+
+config NPC
+	bool "NPC"
+	default n
+
+endmenu
+
